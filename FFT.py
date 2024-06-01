@@ -1,75 +1,41 @@
 import numpy as np
 
-TwoPi = np.pi * 2
+#1D FFT
+def fft1d(signal):
+    N = len(signal)
+    if N <= 1:
+        return signal
+    even = fft1d(signal[0::2])
+    odd = fft1d(signal[1::2])
+    T = [np.exp(-2j * np.pi * k / N) * odd[k] for k in range(N // 2)]
+    return [even[k] + T[k] for k in range(N // 2)] + [even[k] - T[k] for k in range(N // 2)]
 
-def FFT(AVal, FTvl, Nvl, Nft):
-    i, j, n, m, Mmax, Istp = 0
+#1D IFFT
+def ifft1d(signal):
+    N = len(signal)
+    if N <= 1:
+        return signal
+    even = ifft1d(signal[0::2])
+    odd = ifft1d(signal[1::2])
+    T = [np.exp(2j * np.pi * k / N) * odd[k] for k in range(N // 2)]
+    return [(even[k] + T[k]) / 2 for k in range(N // 2)] + [(even[k] - T[k]) / 2 for k in range(N // 2)]
 
-    Tmpr, Tmpi, Wtmp, Theta = 0.0
-    Wpr, Wpi, Wr, Wi = 0.0
-    Tmvl = 0.0
-
-    n = Nvl * 2
-    Tmvl = [0.0] * n
-
-    for i in range(0, n, 2):
-        Tmvl[i] = 0
-        Tmvl[i+1] = AVal[i/2]
-
-    i, j = 1
-    while i < n:
-        if j > i:
-            Tmpr = Tmvl[i]
-            Tmvl[i] = Tmvl[j]
-            Tmvl[j] = Tmpr
-
-            Tmpr = Tmvl[i+1]
-            Tmvl[i+1] = Tmvl[j+1]
-            Tmvl[j+1] = Tmpr
-        
-        i = i + 2
-        m = Nvl
-
-        while m >= 2 and j > m:
-            j = j - m
-            m = m >> 1
-        j = j + m
+#2D FFT
+def fft2d(image):
+    # Преобразование каждой строки
+    fft_rows = np.array([fft1d(row) for row in image])
     
-    Mmax = 2
-    while n > Mmax:
-        Theta = -TwoPi / Mmax
-        Wpi = np.sin(Theta)
-        Wtmp = np.sin(Theta / 2)
-        Wpr = Wtmp * Wtmp * 2
-
-        Istp = Mmax * 2
-        Wr = 1
-        Wi = 0
-        m = 1
-
-        while m < Mmax:
-            i = m, m = m + 2
-            Tmpr = Wr
-            Tmpi = Wi
-            Wr = Wr - Tmpr * Wpr - Tmpi * Wpi
-            Wi = Wi + Tmpr * Wpi - Tmpi * Wpr
-
-            while i < n:
-                j = i + Mmax
-                Tmpr = Wr * Tmvl[j] - Wi * Tmvl[j - 1]
-                Tmpi = Wi * Tmvl[j] + Wr * Tmvl[j-1]
-
-                Tmvl[j] = Tmvl[i] - Tmpr
-                Tmvl[j-1] = Tmvl[i-1] - Tmpi
-                Tmvl[i] = Tmvl[i] + Tmpr
-                Tmvl[i-1] = Tmvl[i-1] + Tmpi
-                i = i + Istp
-        
-        Mmax = Istp
+    # Преобразование каждого столбца
+    fft2d_result = np.array([fft1d(col) for col in fft_rows.T]).T
     
-    for i in range(Nft):
-        j = i * 2
-        FTvl[i] = 2*np.sqrt(np.power(Tmvl[j], 2) + np.power(Tmvl[j+1], 2))/Nvl
+    return fft2d_result
 
-    return FTvl
-
+#2D IFFT
+def ifft2d(image):
+    # Преобразование каждой строки
+    ifft_rows = np.array([ifft1d(row) for row in image])
+    
+    # Преобразование каждого столбца
+    ifft2d_result = np.array([ifft1d(col) for col in ifft_rows.T]).T
+    
+    return ifft2d_result
