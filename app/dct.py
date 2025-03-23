@@ -5,6 +5,7 @@ import sys
 import time
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct
+from scipy.fftpack import idct
 
 
 class DCT2D:
@@ -83,3 +84,37 @@ class DCT2D:
                         self.dct_blocks[i, j, :, :, c] = self.dct2D(block)
 
         return self.dct_blocks
+    
+
+    # Decoded
+
+    def idct2D(self, block):
+        """
+        Реализация 2D IDCT с использованием scipy.fftpack.idct.
+        :param block: входной блок коэффициентов DCT размером N x N
+        :return: восстановленный блок пикселей
+        """
+        # Первый проход — IDCT по строкам
+        temp = idct(block, axis=0, type=2, norm='ortho')
+        # Второй проход — IDCT по столбцам
+        idct_res = idct(temp, axis=1, type=2, norm='ortho')
+        return idct_res
+    
+    def apply_idct_to_blocks(self, dct_blocks):
+        """
+        Применить 2D IDCT к каждому блоку коэффициентов DCT.
+        :param dct_blocks: массив коэффициентов DCT (H, W, block_size, block_size, channels)
+        :return: восстановленные блоки пикселей
+        """
+        H, W, block_size, _, channels = dct_blocks.shape
+        img_blocks = np.zeros_like(dct_blocks, dtype=np.float32)
+
+        for i in range(H):
+            for j in range(W):
+                for c in range(channels):
+                    block = dct_blocks[i, j, :, :, c]  # Извлекаем блок для текущего канала
+                    img_blocks[i, j, :, :, c] = self.idct2D(block)
+
+        return img_blocks
+    
+    

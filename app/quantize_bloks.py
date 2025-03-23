@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 
-class QuantizeBloks:
+class QuantizeBlocks:
 
-    def __init__(self, q_matrix=None):
+    def __init__(self, q_matrix=None, quality=0):
+
+        self.quality = quality
 
         if q_matrix is not None:
             self.q_matrices = q_matrix
@@ -63,14 +65,60 @@ class QuantizeBloks:
 
 
     def quantize_dct_bloks(self, bloks, quality=0):
-
+        """
+        Quantizes the DCT coefficients using the selected quality factor.
+        
+        Args:
+            blocks (np.array): DCT blocks to quantize.
+            quality (int): Quality factor (0 = default matrices).
+        
+        Returns:
+            np.array: Quantized blocks.
+        """
         if quality == 0:
             H, W, block_size, _, channels = bloks.shape
-            quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
+            self.quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
 
             for c in range(channels):
                 for i in range(H):
                     for j in range(W):
-                        quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] / quant_matrices[c])
+                        self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] / self.q_matrices[c])
 
-            return quantized_blocks
+            return self.quantized_blocks
+        
+        else:
+            self.scale_quantiztion_matrices(quality)
+            H, W, block_size, _, channels = bloks.shape
+            self.quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
+
+
+            for c in range(channels):
+                for i in range(H):
+                    for j in range(W):
+                        self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] / self.q_scale_matrices[c])
+
+            return self.quantized_blocks
+        
+
+
+
+        # Decoded
+    def dequantize_blocks(self, quantized_blocks, block_size):
+        """
+        Восстановить коэффициенты DCT из квантованных значений.
+        :param quantized_blocks: массив квантованных коэффициентов (H, W, block_size, block_size, channels)
+        :param quality: параметр показывающий нужно спользовать встроенные матрицы квантования или кастомные
+        :return: массив деквантованных коэффициентов DCT
+        """
+        #TODO  сделать по условию quality
+
+        print(quantized_blocks.shape)
+        H, W, block_size, _, channels = quantized_blocks.shape
+        dct_blocks = np.zeros_like(quantized_blocks, dtype=np.float32)
+
+        for c in range(channels):
+            for i in range(H):
+                for j in range(W):
+                    dct_blocks[i, j, :, :, c] = quantized_blocks[i, j, :, :, c] * self.q_matrices[c]
+
+        return dct_blocks
