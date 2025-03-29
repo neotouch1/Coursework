@@ -12,7 +12,7 @@ from rle import RleProcessing
 
 
 if __name__ == "__main__":
-    image_path = "/home/evgen/Coursework/dct_compress/-SZE57zExy0_600_338.jpg"
+    image_path = "/home/evgen/Coursework/170046-nochnoj_neonovyj_avtomobil-legkovyye_avtomobili-noch-neon-grafika-1920x1080.jpg"
 
     pre_img = ImagePreparation(image_path)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     # Собираем и сливаем блоки воедино
     reconstructed_image = pre_img.merge_blocks(blocks_pixels)
-    
+
     reconstructed_bgr = cv2.cvtColor(reconstructed_image, cv2.COLOR_YCrCb2BGR)
 
     # Показать изображение
