@@ -14,10 +14,10 @@ from rle import RleProcessing
 if __name__ == "__main__":
     image_path = "/home/evgen/Coursework/dct_compress/-SZE57zExy0_600_338.jpg"
 
-    img = ImagePreparation(image_path)
+    pre_img = ImagePreparation(image_path)
 
-    new_img = img.pad_image_to_multiple()
-    bloks = img.split_into_bloks()
+    new_img = pre_img.pad_image_to_multiple()
+    bloks = pre_img.split_into_bloks()
     print(bloks.shape)
 
     # cv2.imshow("image", new_img)
@@ -53,10 +53,14 @@ if __name__ == "__main__":
     restored_rle_blocks = rle.restore_rle_blocks()
     #print(restored_rle_blocks)
 
+
+
     #decode rle
     decoded_zigzag_blocks = rle.decode_rle_from_all_blocks()
     tr_blocks  = zig_ex.inverse_zigzag_transform_blocks()
     #print(zigzag_blocks)
+
+    
     # Проверим восстановление первого блока первого канала
     print("Декодированный первый блок (первый канал):")
     print(tr_blocks[0, 0, :, 2])
@@ -68,35 +72,9 @@ if __name__ == "__main__":
     blocks_pixels = res_dct.apply_idct_to_blocks(blocks_for_dct)
     print(blocks_for_dct.shape)
 
-
-
-
-
-
-
-
-
-    def merge_blocks(blocks, original_shape):
-        """
-        Собрать изображение из блоков.
-        :param blocks: массив блоков (H, W, block_size, block_size, channels)
-        :param original_shape: исходный размер изображения (h, w, channels)
-        :return: восстановленное изображение
-        """
-        H, W, block_size, _, channels = blocks.shape
-        h, w, _ = original_shape
-
-        img = np.zeros((H * block_size, W * block_size, channels), dtype=np.uint8)
-
-        for i in range(H):
-            for j in range(W):
-                img[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size, :] = blocks[i, j]
-
-        return img[:h, :w]  # Обрезаем до исходного размера
-
-
-
-    reconstructed_image = merge_blocks(blocks_pixels, img.image.shape)
+    # Собираем и сливаем блоки воедино
+    reconstructed_image = pre_img.merge_blocks(blocks_pixels)
+    
     reconstructed_bgr = cv2.cvtColor(reconstructed_image, cv2.COLOR_YCrCb2BGR)
 
     # Показать изображение

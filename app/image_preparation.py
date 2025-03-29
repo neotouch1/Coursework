@@ -63,6 +63,26 @@ class ImagePreparation:
 
 
 
+    def merge_blocks(self, blocks):
+        """
+        Собрать изображение из блоков.
+        :param blocks: массив блоков (H, W, block_size, block_size, channels)
+        :param original_shape: исходный размер изображения (h, w, channels)
+        :return: восстановленное изображение
+        """
+        H, W, block_size, _, channels = blocks.shape
+        h, w, _ = self.image.shape
+
+        img = np.zeros((H * block_size, W * block_size, channels), dtype=np.uint8)
+
+        for i in range(H):
+            for j in range(W):
+                img[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size, :] = blocks[i, j]
+
+        return img[:h, :w]  # Обрезаем до исходного размера
+
+
+
 
 # if __name__ == "__main__":
 #     image_path = "/home/evgen/Coursework/dct_compress/-SZE57zExy0_600_338.jpg"
