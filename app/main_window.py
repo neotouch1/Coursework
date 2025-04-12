@@ -29,13 +29,13 @@ class ImageProcessingApp(QMainWindow):
 
 
         # === Задать уровень сжатия ===
-        self.btn_coeff = QPushButton("Set compression level", self)
-        self.btn_coeff.clicked.connect(self.set_compress_level) # TODO function for processing (scale_quantiztion_matrices)
+        self.btn_coeff = QPushButton("Задать уровень сжатия", self)
+        # self.btn_coeff.clicked.connect(self.set_compress_level) # TODO function for processing (scale_quantiztion_matrices)
         layout.addWidget(self.btn_coeff)
 
         # === Задать выполнение DCT собственной реализации или библиотечной ===
         self.btn_dct = QPushButton("Открыть изображение", self)
-        self.btn_dct.clicked.connect(self.proc_dct)  # TODO function for processing (def dct2D(self, block):)
+        # self.btn_dct.clicked.connect(self.proc_dct)  # TODO function for processing (def dct2D(self, block):)
         layout.addWidget(self.btn_dct)
 
 

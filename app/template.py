@@ -3,7 +3,14 @@ import cv2
 import numpy as np
 import time
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QVBoxLayout, QHBoxLayout, QWidget
+    QApplication, 
+    QMainWindow, 
+    QPushButton, 
+    QLabel, 
+    QFileDialog, 
+    QVBoxLayout, 
+    QWidget,
+    QDialog
 )
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
@@ -13,6 +20,8 @@ from image_preparation import ImagePreparation
 from quantize_bloks import QuantizeBlocks
 from zigzag_transform import ZigzagTransform
 from rle import RleProcessing
+from UI.setting_dct import DCTSettingDialog
+from UI.compression_lvl import CompressionLevelDialog
 
 class ImageProcessingApp(QMainWindow):
     def __init__(self):
@@ -21,84 +30,106 @@ class ImageProcessingApp(QMainWindow):
         self.setWindowTitle("Image Processing App")
         self.setGeometry(100, 100, 1000, 800)
 
-        self.initUI()
-
-    def initUI(self):
-        main_layout = QHBoxLayout()
-        control_layout = QVBoxLayout()
-
-        # Метка для изображения
-        self.image_label = QLabel(self)
-        self.image_label.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.image_label, stretch=3)
-
-        # Метки для размеров изображения
-        self.label_size_before = QLabel("Размер до сжатия: - байт")
-        self.label_size_after = QLabel("Размер после сжатия: - байт")
-        self.label_processing_time = QLabel("Время обработки: - сек")
-
-        control_layout.addWidget(self.label_size_before)
-        control_layout.addWidget(self.label_size_after)
-        control_layout.addWidget(self.label_processing_time)
-
-        # Основные кнопки
-        self.btn_open = QPushButton("Открыть изображение")
-        self.btn_open.clicked.connect(self.open_image)
-        control_layout.addWidget(self.btn_open)
-
-        self.btn_process = QPushButton("Обработать изображение")
-        self.btn_process.clicked.connect(self.process_image)
-        self.btn_process.setEnabled(False)
-        control_layout.addWidget(self.btn_process)
-
-        self.btn_save = QPushButton("Сохранить изображение")
-        self.btn_save.clicked.connect(self.save_image)
-        self.btn_save.setEnabled(False)
-        control_layout.addWidget(self.btn_save)
-
-        # Кнопки для просмотра промежуточных шагов
-        self.btn_show_dct = QPushButton("Показать DCT-коэффициенты")
-        self.btn_show_dct.clicked.connect(self.show_dct)
-        self.btn_show_dct.setEnabled(False)
-        control_layout.addWidget(self.btn_show_dct)
-
-        self.btn_show_quant = QPushButton("Показать квантованные блоки")
-        self.btn_show_quant.clicked.connect(self.show_quantized_blocks)
-        self.btn_show_quant.setEnabled(False)
-        control_layout.addWidget(self.btn_show_quant)
-
-        self.btn_show_zigzag = QPushButton("Показать зигзаг")
-        self.btn_show_zigzag.clicked.connect(self.show_zigzag)
-        self.btn_show_zigzag.setEnabled(False)
-        control_layout.addWidget(self.btn_show_zigzag)
-
-        self.btn_show_rle = QPushButton("Показать RLE-данные")
-        self.btn_show_rle.clicked.connect(self.show_rle)
-        self.btn_show_rle.setEnabled(False)
-        control_layout.addWidget(self.btn_show_rle)
-
-        main_layout.addLayout(control_layout, stretch=1)
-        container = QWidget()
-        container.setLayout(main_layout)
-        self.setCentralWidget(container)
-
-        # Переменные для хранения промежуточных данных
+    # === Переменные для хранения данных ===
         self.image_path = None
+        self.dct_choice = None
+        self.compress_level = None
+
+        self.processed_image = None
         self.dct_blocks = None
         self.quantized_blocks = None
         self.zigzag_blocks = None
         self.rle_data = None
-        self.original_size = 0
-        self.compressed_size = 0
 
+
+
+
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        # === Метка для изображения ===
+        self.image_label = QLabel(self)
+        self.image_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.image_label)
+
+        self.image_size_label = QLabel("Размер изображения: -", self)
+        layout.addWidget(self.image_size_label)
+
+        self.processing_time_label = QLabel("Время обработки: -", self)
+        layout.addWidget(self.processing_time_label)
+
+        ### === Основные кнопки ===
+        self.btn_open = QPushButton("Открыть изображение", self)
+        self.btn_open.clicked.connect(self.open_image)
+        layout.addWidget(self.btn_open)
+
+        # === Задать выполнение DCT собственной реализации или библиотечной ===
+        self.btn_dct = QPushButton("Выбрать реализацию DCT", self)
+        self.btn_dct.clicked.connect(self.proc_dct)  # TODO function for processing (def dct2D(self, block):)
+        layout.addWidget(self.btn_dct)
+
+
+        # === Задать уровень сжатия ===
+        self.btn_coeff = QPushButton("Задать уровень сжатия", self)
+        self.btn_coeff.clicked.connect(self.set_compress_level) # TODO function for processing (scale_quantiztion_matrices)
+        layout.addWidget(self.btn_coeff)
+
+
+
+        self.btn_process = QPushButton("Обработать изображение", self)
+        self.btn_process.clicked.connect(self.process_image)
+        self.btn_process.setEnabled(False)
+        layout.addWidget(self.btn_process)
+
+        self.btn_save = QPushButton("Сохранить изображение", self)
+        self.btn_save.clicked.connect(self.save_image)
+        self.btn_save.setEnabled(False)
+        layout.addWidget(self.btn_save)
+
+        ### ========================
+
+        # === Кнопки для промежуточных шагов ===
+        self.btn_show_dct = QPushButton("Показать карту DCT-коэффициентов", self)
+        self.btn_show_dct.clicked.connect(self.show_dct)
+        self.btn_show_dct.setEnabled(False)
+        layout.addWidget(self.btn_show_dct)
+
+        self.btn_show_quant = QPushButton("Показать квантованные блоки", self)
+        self.btn_show_quant.clicked.connect(self.show_quantized_blocks)
+        self.btn_show_quant.setEnabled(False)
+        layout.addWidget(self.btn_show_quant)
+
+        self.btn_show_zigzag = QPushButton("Показать зигзаг", self)
+        self.btn_show_zigzag.clicked.connect(self.show_zigzag)
+        self.btn_show_zigzag.setEnabled(False)
+        layout.addWidget(self.btn_show_zigzag)
+
+        self.btn_show_rle = QPushButton("Показать RLE-данные", self)
+        self.btn_show_rle.clicked.connect(self.show_rle)
+        self.btn_show_rle.setEnabled(False)
+        layout.addWidget(self.btn_show_rle)
+
+        # # === Показать изменение размера изображения ===
+        # self.btn_show_compressed = QPushButton("Показать степень сжатия", self)
+        # self.btn_show_compressed.clicked.connect(self.none)  # TODO function for processing 
+        # self.btn_show_compressed.setEnabled(False)
+        # layout.addWidget(self.btn_show_compressed)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+### ended UI init
+
+
+### ==== Button image
     def open_image(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Выберите изображение", "",
                                                    "Images (*.png *.xpm *.jpg *.bmp *.jpeg)")
         if file_name:
             self.image_path = file_name
             self.show_image(self.image_path)
-            self.original_size = self.get_file_size(self.image_path)
-            self.label_size_before.setText(f"Размер до сжатия: {self.original_size} байт")
             self.btn_process.setEnabled(True)
 
     def show_image(self, path):
@@ -110,67 +141,91 @@ class ImageProcessingApp(QMainWindow):
         pixmap = QPixmap.fromImage(qimg)
         self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio))
 
-    def process_image(self):
-        start_time = time.time()
+### ====
 
-        pre_img = ImagePreparation(self.image_path)
-        bloks = pre_img.split_into_bloks()
+
+
+### ==== Button "set DCT"
+    def proc_dct(self):
+        dialog = DCTSettingDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            self.dct_choice = dialog.selected_option()
+            print(f"Выбрана реализация DCT: {self.dct_choice}")
+### ====
+
+
+
+### ==== Button "set compressed"
+
+    def set_compress_level(self): # TODO function for processing (scale_quantiztion_matrices)
+        dialog = CompressionLevelDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            self.compress_level = dialog.get_value()
+            print(f"Уровень сжатия: {self.compress_level}%")
+### ====
+
+
+    def process_image(self):
+
+        # create timer
+        start_time = time.time()
+        """
+        Запуск обработки изображения:
+        1. Подготовка изображения
+        2. DCT преобразование
+        3. Квантование
+        4. Зигзагообразное преобразование
+        5. RLE сжатие
+        """
+
+        pre_image = ImagePreparation(self.image_path)
+        blocks = pre_image.split_into_bloks()
 
         res_dct = DCT2D()
-        res_dct.apply_dct_to_blocks(bloks)
-        self.dct_blocks = res_dct.dct_blocks
+        res_dct.apply_dct_to_blocks(blocks, self.dct_choice)
 
         quant_blocks = QuantizeBlocks()
-        quant_blocks.quantize_dct_bloks(self.dct_blocks)
-        self.quantized_blocks = quant_blocks.quantized_blocks
+        quant_blocks.quantize_dct_bloks(res_dct.dct_blocks, self.compress_level)
 
         zig_ex = ZigzagTransform()
-        self.zigzag_blocks = zig_ex.z_transform_blocks(self.quantized_blocks)
+        zig_ex.z_transform_blocks(quant_blocks.quantized_blocks)
 
         rle = RleProcessing()
-        self.rle_data = rle.apply_rle_all_blocks(self.zigzag_blocks)
+        self.rle_data = rle.apply_rle_all_blocks(zig_ex.zigzag_blocks)
 
-        self.compressed_size = sum(len(block) for row in self.rle_data for block in row)
-        self.label_size_after.setText(f"Размер после сжатия: {self.compressed_size} байт")
+        elapsed_time = time.time() - start_time
+        self.processing_time_label.setText(f"Время обработки: {elapsed_time:.4f} сек")
 
-        end_time = time.time()
-        self.label_processing_time.setText(f"Время обработки: {end_time - start_time:.2f} сек")
-
-        # Включаем кнопки для просмотра промежуточных шагов
-        self.btn_show_dct.setEnabled(True)
-        self.btn_show_quant.setEnabled(True)
-        self.btn_show_zigzag.setEnabled(True)
-        self.btn_show_rle.setEnabled(True)
-        self.btn_save.setEnabled(True)
 
     def show_dct(self):
-        plt.figure()
-        plt.imshow(self.dct_blocks[0, 0], cmap='gray')
-        plt.title("DCT Коэффициенты (Первый блок)")
-        plt.colorbar()
-        plt.show()
+        """
+        Отображение карты DCT коэффициентов для проверки результата.
+        """
+        pass
 
     def show_quantized_blocks(self):
-        plt.figure()
-        plt.imshow(self.quantized_blocks[0, 0], cmap='gray')
-        plt.title("Квантованные блоки (Первый блок)")
-        plt.colorbar()
-        plt.show()
+        """
+        Отображение квантованных блоков.
+        """
+        pass
 
     def show_zigzag(self):
-        print("Зигзаг блоков:", self.zigzag_blocks[0, 0, :, 2])
+        """
+        Отображение результата зигзагообразного преобразования.
+        """
+        pass
 
     def show_rle(self):
-        print("RLE данные для первого блока:", self.rle_data[0][0])
+        """
+        Вывод результата RLE сжатия.
+        """
+        pass
 
     def save_image(self):
-        pass  # Реализация сохранения
-
-    def get_file_size(self, path):
-        try:
-            return os.path.getsize(path)
-        except:
-            return 0
+        """
+        Сохранение обработанного изображения.
+        """
+        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
