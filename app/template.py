@@ -1,5 +1,6 @@
 import sys
 import cv2
+import os
 import numpy as np
 import time
 from PyQt5.QtWidgets import (
@@ -10,7 +11,9 @@ from PyQt5.QtWidgets import (
     QFileDialog, 
     QVBoxLayout, 
     QWidget,
-    QDialog
+    QDialog,
+    QStatusBar,
+    QSizePolicy
 )
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
@@ -33,7 +36,9 @@ class ImageProcessingApp(QMainWindow):
     # === Переменные для хранения данных ===
         self.image_path = None
         self.dct_choice = None
-        self.compress_level = None
+        self.compress_level = 50
+        self.img_size_before = None
+        self.img_size_after = None
 
         self.processed_image = None
         self.dct_blocks = None
@@ -42,7 +47,8 @@ class ImageProcessingApp(QMainWindow):
         self.rle_data = None
 
 
-
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
 
         self.initUI()
 
@@ -53,12 +59,6 @@ class ImageProcessingApp(QMainWindow):
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.image_label)
-
-        self.image_size_label = QLabel("Размер изображения: -", self)
-        layout.addWidget(self.image_size_label)
-
-        self.processing_time_label = QLabel("Время обработки: -", self)
-        layout.addWidget(self.processing_time_label)
 
         ### === Основные кнопки ===
         self.btn_open = QPushButton("Открыть изображение", self)
@@ -120,6 +120,22 @@ class ImageProcessingApp(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+
+        # self.image_size_label = QLabel("Размер изображения: -", self)
+        # layout.addWidget(self.image_size_label)
+
+        # self.processing_time_label = QLabel("Время обработки: -", self)
+        # self.statusBar.addPermanentWidget(self.processing_time_label)
+        self.image_size_label = QLabel("Размер: -", self)
+        self.image_size_label.setStyleSheet("font-size: 20px; padding: 0 4px;")
+        self.image_size_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.processing_time_label = QLabel("Время: -", self)
+        self.processing_time_label.setStyleSheet("font-size: 20px; padding: 0 4px;")
+        self.processing_time_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.statusBar.addWidget(self.image_size_label)  # Слева
+        self.statusBar.addPermanentWidget(self.processing_time_label)
 ### ended UI init
 
 
@@ -129,6 +145,7 @@ class ImageProcessingApp(QMainWindow):
                                                    "Images (*.png *.xpm *.jpg *.bmp *.jpeg)")
         if file_name:
             self.image_path = file_name
+            self.img_size_before = os.path.getsize(self.image_path)
             self.show_image(self.image_path)
             self.btn_process.setEnabled(True)
 
@@ -185,6 +202,7 @@ class ImageProcessingApp(QMainWindow):
         res_dct.apply_dct_to_blocks(blocks, self.dct_choice)
 
         quant_blocks = QuantizeBlocks()
+        print(self.compress_level)
         quant_blocks.quantize_dct_bloks(res_dct.dct_blocks, self.compress_level)
 
         zig_ex = ZigzagTransform()
@@ -193,8 +211,46 @@ class ImageProcessingApp(QMainWindow):
         rle = RleProcessing()
         self.rle_data = rle.apply_rle_all_blocks(zig_ex.zigzag_blocks)
 
+
+
+        #Decode
+        restored_rle_blocks = rle.restore_rle_blocks()
+
+
+        decoded_zigzag_blocks = rle.decode_rle_from_all_blocks()
+        tr_blocks  = zig_ex.inverse_zigzag_transform_blocks()
+
+
+        blocks_for_dct = quant_blocks.dequantize_blocks(tr_blocks, 8) # Подготовка коэффициентов DCT
+        blocks_pixels = res_dct.apply_idct_to_blocks(blocks_for_dct)
+
+        # Собираем и сливаем блоки воедино
+        reconstructed_image = pre_image.merge_blocks(blocks_pixels)
+        reconstructed_bgr = cv2.cvtColor(reconstructed_image, cv2.COLOR_YCrCb2BGR)
+
         elapsed_time = time.time() - start_time
         self.processing_time_label.setText(f"Время обработки: {elapsed_time:.4f} сек")
+
+        # 
+        self.processed_image = reconstructed_bgr
+        temp_file = "temp_compressed.jpg"
+        cv2.imwrite(temp_file, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        self.img_size_after = os.path.getsize(temp_file)
+
+        befor = round(self.img_size_before / 1024, 2)
+        after = round(self.img_size_after / 1024, 2)
+        # Обновляем метки в интерфейсе
+        self.image_size_label.setText(f"Размер до: {befor} Кб, после: {after} Кб")
+        os.remove(temp_file)
+        self.btn_save.setEnabled(True)
+
+
+    def save_image(self):
+        if self.processed_image is not None:
+            file_name, _ = QFileDialog.getSaveFileName(self, "Сохранить изображение", "", "JPEG Files (*.jpg)")
+            if file_name:
+                cv2.imwrite(file_name, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                print(f"Изображение сохранено в {file_name}")
 
 
     def show_dct(self):
