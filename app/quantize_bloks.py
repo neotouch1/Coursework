@@ -45,24 +45,73 @@ class QuantizeBlocks:
 
 
     def scale_quantiztion_matrices(self, quality):
-        """
-        Scales the base quantization matrices according to the desired quality.
-    
-        Args:
-            base_matrices (list of np.array): Base quantization matrices for Y, Cb, and Cr.
-            quality (int): The target quality in percentage (higher means better quality).
-    
-        Returns:
-            list of np.array: Scaled quantization matrices corresponding to the input quality.
-        """
-
-        self.q_scale_matrices = [
-            np.clip((m * quality + 50) / 100, 1, 255).astype(np.int32)
-            for m in self.q_matrices
-        ]
-
-        return self.q_scale_matrices
-
+        if quality == 2:
+            self.q_scale_matrices = [
+                np.array([
+                    [16,11,10,16,24, 40, 51, 61],
+                    [12,12,14,19,26, 58, 60, 55],
+                    [14,13,16,24,40, 57, 69, 56],
+                    [14,17,22,29,51, 87, 80, 62],
+                    [18,22,37,56,68,109,103, 77],
+                    [24,35,55,64,81,104,113, 92],
+                    [49,64,78,87,103,121,120,101],
+                    [72,92,95,98,112,100,103, 99]
+                ]),
+                np.array([
+                    [17,18,24,47,99,99,99,99],
+                    [18,21,26,66,99,99,99,99],
+                    [24,26,56,99,99,99,99,99],
+                    [47,66,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99]
+                ]),
+                np.array([
+                    [17,18,24,47,99,99,99,99],
+                    [18,21,26,66,99,99,99,99],
+                    [24,26,56,99,99,99,99,99],
+                    [47,66,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99]
+                ])
+            ]
+        elif quality == 5:
+             self.q_scale_matrices = [
+                np.array([
+                    [16,11,10,16,99, 99, 99, 99],
+                    [12,12,14,99,99, 99, 99, 99],
+                    [14,99,99,99,99, 99, 99, 99],
+                    [99,99,99,99,99, 99, 99, 99],
+                    [99,99,99,99,99,109,103, 99],
+                    [99,99,99,99,99,104,113, 99],
+                    [99,99,99,99,103,121,120,101],
+                    [99,99,99,99,112,100,103, 99]
+                ]),
+                np.array([
+                    [17,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99]
+                ]),
+                np.array([
+                    [17,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99],
+                    [99,99,99,99,99,99,99,99]
+                ])
+            ]       
+             
 
     def quantize_dct_bloks(self, bloks, quality=0):
         """
@@ -75,6 +124,8 @@ class QuantizeBlocks:
         Returns:
             np.array: Quantized blocks.
         """
+        #np.set_printoptions(precision=2, suppress=True)
+        # print(bloks[:1, :, :, :, 1])
         if quality == 0:
             H, W, block_size, _, channels = bloks.shape
             self.quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
@@ -84,6 +135,7 @@ class QuantizeBlocks:
                     for j in range(W):
                         self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] / self.q_matrices[c])
 
+            #print(self.quantized_blocks[:1, :, :, :, 1])
             return self.quantized_blocks
         
         else:
@@ -97,6 +149,7 @@ class QuantizeBlocks:
                     for j in range(W):
                         self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] / self.q_scale_matrices[c])
 
+            #print(self.quantized_blocks[:1, :, :, :, 1])
             return self.quantized_blocks
         
 

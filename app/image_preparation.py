@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 
 
+
 class ImagePreparation:
     def __init__(self,
                  image_path, 
@@ -15,7 +16,8 @@ class ImagePreparation:
 
         self.block_size = block_size
         self.image_path = image_path
-        self.image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
+        img = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
+        self.image = cv2.GaussianBlur(img, (5, 5), 0)
         self.h = self.image.shape[0]
         self.w = self.image.shape[1]
         

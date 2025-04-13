@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt
 
 '''
 Этот класс предназначен для отображения окна с выбором уровня сжатия изображения
-Метод get_value - возвращает значение в процентах, которое
+Метод get_value - возвращает значение, которое
 отправится в класс QuantizeBlocks для изменения матриц квантования.
 '''
 
@@ -14,31 +14,29 @@ class CompressionLevelDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        self.lable = QLabel("Введите уровень сжатия в процентах:")
-        layout.addWidget(self.lable)
+        self.label = QLabel("Выберите уровень сжатия:")
+        layout.addWidget(self.label)
 
+        # Создание радиокнопок для выбора уровня сжатия
+        self.radio_2 = QRadioButton("В 2 раза")
+        self.radio_5 = QRadioButton("В 5 раз")
 
-        # Ползунок для выбора уровня сжатия
-        self.slider = QSlider(Qt.Horizontal, self)
-        self.slider.setRange(1, 100)  # Диапазон от 1 до 100
-        self.slider.setValue(50)  # Значение по умолчанию (среднее)
-        self.slider.valueChanged.connect(self.update_label)
-        layout.addWidget(self.slider)
+        # Установка значения по умолчанию (первый вариант)
+        self.radio_2.setChecked(True)
 
-        # Метка с текущим значением ползунка
-        self.value_label = QLabel(f"Уровень сжатия: {self.slider.value()}%", self)
-        layout.addWidget(self.value_label)
+        layout.addWidget(self.radio_2)
+        layout.addWidget(self.radio_5)
 
         # Кнопка подтверждения
-        self.btn_ok = QPushButton("ОК", self)
-        self.btn_ok.clicked.connect(self.accept)  # Закрывает окно
-        layout.addWidget(self.btn_ok)
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.accept)
+        layout.addWidget(self.ok_button)
 
         self.setLayout(layout)
 
-    def update_label(self):
-        # Обновление метки с текущим значением
-        self.value_label.setText(f"Уровень сжатия: {self.slider.value()}%")
-
     def get_value(self):
-        return self.slider.value()  # Возвращает значение слайдера
+        # Возвращаем значение в зависимости от выбранной радиокнопки
+        if self.radio_2.isChecked():
+            return 2
+        else:
+            return 5

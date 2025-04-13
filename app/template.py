@@ -241,8 +241,7 @@ class ImageProcessingApp(QMainWindow):
         after = round(self.img_size_after / 1024, 2)
         # Обновляем метки в интерфейсе
         self.image_size_label.setText(f"Размер до: {befor} Кб, после: {after} Кб")
-        os.remove(temp_file)
-        self.btn_save.setEnabled(True)
+        # os.remove(temp_file)
 
 
     def save_image(self):
