@@ -36,12 +36,13 @@ class ImageProcessingApp(QMainWindow):
     # === Переменные для хранения данных ===
         self.image_path = None
         self.dct_choice = None
-        self.compress_level = 50
+        self.compress_level = 2
         self.img_size_before = None
         self.img_size_after = None
 
         self.processed_image = None
         self.dct_blocks = None
+
         self.quantized_blocks = None
         self.zigzag_blocks = None
         self.rle_data = None
@@ -91,12 +92,12 @@ class ImageProcessingApp(QMainWindow):
         ### ========================
 
         # === Кнопки для промежуточных шагов ===
-        self.btn_show_dct = QPushButton("Показать карту DCT-коэффициентов", self)
+        self.btn_show_dct = QPushButton("Показать карту энергии DCT-коэффициентов", self)
         self.btn_show_dct.clicked.connect(self.show_dct)
         self.btn_show_dct.setEnabled(False)
         layout.addWidget(self.btn_show_dct)
 
-        self.btn_show_quant = QPushButton("Показать квантованные блоки", self)
+        self.btn_show_quant = QPushButton("Показать карту энергии квантованных блоков", self)
         self.btn_show_quant.clicked.connect(self.show_quantized_blocks)
         self.btn_show_quant.setEnabled(False)
         layout.addWidget(self.btn_show_quant)
@@ -198,12 +199,22 @@ class ImageProcessingApp(QMainWindow):
         pre_image = ImagePreparation(self.image_path)
         blocks = pre_image.split_into_bloks()
 
+
+        # Обрабтка DCT
         res_dct = DCT2D()
         res_dct.apply_dct_to_blocks(blocks, self.dct_choice)
+        dct_b = res_dct.apply_idct_to_blocks(res_dct.dct_blocks)
+        self.dct_blocks = pre_image.merge_blocks(dct_b)
 
+
+        # Обработка с квантованными блоками
         quant_blocks = QuantizeBlocks()
         print(self.compress_level)
         quant_blocks.quantize_dct_bloks(res_dct.dct_blocks, self.compress_level)
+        quant_show = res_dct.apply_idct_to_blocks(quant_blocks.quantized_blocks)
+        self.quantized_blocks = pre_image.merge_blocks(quant_show)
+
+
 
         zig_ex = ZigzagTransform()
         zig_ex.z_transform_blocks(quant_blocks.quantized_blocks)
@@ -242,6 +253,9 @@ class ImageProcessingApp(QMainWindow):
         # Обновляем метки в интерфейсе
         self.image_size_label.setText(f"Размер до: {befor} Кб, после: {after} Кб")
         # os.remove(temp_file)
+        self.btn_save.setEnabled(True)
+        self.btn_show_dct.setEnabled(True)
+        self.btn_show_quant.setEnabled(True)
 
 
     def save_image(self):
@@ -253,16 +267,58 @@ class ImageProcessingApp(QMainWindow):
 
 
     def show_dct(self):
-        """
-        Отображение карты DCT коэффициентов для проверки результата.
-        """
-        pass
+        if self.dct_blocks is not None:
+            # Преобразуем список блоков DCT в 2D массив для визуализации
+            dct_image = []
+
+            for block in self.dct_blocks:
+                # Для каждого блока вычисляем его энергию (абсолютное значение коэффициентов)
+                energy = np.abs(block)
+                # Можно усреднить энергию для всего блока или оставить все коэффициенты
+                dct_image.append(np.sum(energy))  # В данном случае используем суммарную энергию блока
+
+            # Преобразуем список в массив для отображения
+            dct_image = np.array(dct_image)
+
+            # Преобразуем в 2D, если это нужно
+            size = int(np.sqrt(len(dct_image)))  # Предполагаем, что блоки квадратные
+            dct_image = dct_image[:size * size].reshape(size, size)
+
+            # Используем matplotlib для отображения коэффициентов
+            plt.imshow(dct_image, cmap='hot', interpolation='nearest')  # 'hot' — это тепловая карта
+            plt.colorbar()
+            plt.title("Энергия DCT Коэффициентов")
+            plt.show()
+        else:
+            self.statusBar.showMessage("DCT блоки не были вычислены!")
+
+
 
     def show_quantized_blocks(self):
-        """
-        Отображение квантованных блоков.
-        """
-        pass
+        if self.quantized_blocks is not None:
+            # Преобразуем список блоков DCT в 2D массив для визуализации
+            image = []
+
+            for block in self.quantized_blocks:
+                # Для каждого блока вычисляем его энергию (абсолютное значение коэффициентов)
+                energy = np.abs(block)
+                # Можно усреднить энергию для всего блока или оставить все коэффициенты
+                image.append(np.sum(energy))  # В данном случае используем суммарную энергию блока
+
+            # Преобразуем список в массив для отображения
+            image = np.array(image)
+
+            # Преобразуем в 2D, если это нужно
+            size = int(np.sqrt(len(image)))  # Предполагаем, что блоки квадратные
+            image = image[:size * size].reshape(size, size)
+
+            # Используем matplotlib для отображения коэффициентов
+            plt.imshow(image, cmap='hot', interpolation='nearest')  # 'hot' — это тепловая карта
+            plt.colorbar()
+            plt.title("Энергия DCT Коэффициентов")
+            plt.show()
+        else:
+            self.statusBar.showMessage("DCT блоки не были вычислены!")
 
     def show_zigzag(self):
         """
@@ -273,12 +329,6 @@ class ImageProcessingApp(QMainWindow):
     def show_rle(self):
         """
         Вывод результата RLE сжатия.
-        """
-        pass
-
-    def save_image(self):
-        """
-        Сохранение обработанного изображения.
         """
         pass
 
