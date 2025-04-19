@@ -1,7 +1,9 @@
 import sys
 import cv2
+import csv
 import os
 import numpy as np
+from datetime import datetime
 import time
 from PyQt5.QtWidgets import (
     QApplication, 
@@ -102,15 +104,15 @@ class ImageProcessingApp(QMainWindow):
         self.btn_show_quant.setEnabled(False)
         layout.addWidget(self.btn_show_quant)
 
-        self.btn_show_zigzag = QPushButton("Показать зигзаг", self)
-        self.btn_show_zigzag.clicked.connect(self.show_zigzag)
-        self.btn_show_zigzag.setEnabled(False)
-        layout.addWidget(self.btn_show_zigzag)
+        # self.btn_show_zigzag = QPushButton("Показать зигзаг", self)
+        # self.btn_show_zigzag.clicked.connect(self.show_zigzag)
+        # self.btn_show_zigzag.setEnabled(False)
+        # layout.addWidget(self.btn_show_zigzag)
 
-        self.btn_show_rle = QPushButton("Показать RLE-данные", self)
-        self.btn_show_rle.clicked.connect(self.show_rle)
-        self.btn_show_rle.setEnabled(False)
-        layout.addWidget(self.btn_show_rle)
+        # self.btn_show_rle = QPushButton("Показать RLE-данные", self)
+        # self.btn_show_rle.clicked.connect(self.show_rle)
+        # self.btn_show_rle.setEnabled(False)
+        # layout.addWidget(self.btn_show_rle)
 
         # # === Показать изменение размера изображения ===
         # self.btn_show_compressed = QPushButton("Показать степень сжатия", self)
@@ -179,9 +181,8 @@ class ImageProcessingApp(QMainWindow):
         dialog = CompressionLevelDialog(self)
         if dialog.exec_() == QDialog.Accepted:
             self.compress_level = dialog.get_value()
-            print(f"Уровень сжатия: {self.compress_level}%")
+            print(f"Уровень сжатия: {self.compress_level}")
 ### ====
-
 
     def process_image(self):
 
@@ -245,13 +246,37 @@ class ImageProcessingApp(QMainWindow):
         # 
         self.processed_image = reconstructed_bgr
         temp_file = "temp_compressed.jpg"
-        cv2.imwrite(temp_file, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        self.img_size_after = os.path.getsize(temp_file)
 
-        befor = round(self.img_size_before / 1024, 2)
+        encoded_parm = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+        _, encoded_image = cv2.imencode('.jpg', self.processed_image, encoded_parm)
+        self.img_size_after = len(encoded_image.tobytes())
+
+
+        # cv2.imwrite(temp_file, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        # self.img_size_after = os.path.getsize(temp_file)
+        rgb_image = cv2.cvtColor(self.processed_image, cv2.COLOR_BGR2RGB)
+
+        # Преобразуем в QImage
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        qt_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+
+        # Преобразуем в QPixmap
+        pixmap = QPixmap.fromImage(qt_image)
+        pixmap = pixmap.scaled(self.image_label.size(), 
+                               Qt.KeepAspectRatio, 
+                               Qt.SmoothTransformation)
+
+        # Показываем в QLabel
+        self.image_label.setPixmap(pixmap)
+        self.image_label.setScaledContents(False)
+
+        before = round(self.img_size_before / 1024, 2)
         after = round(self.img_size_after / 1024, 2)
         # Обновляем метки в интерфейсе
-        self.image_size_label.setText(f"Размер до: {befor} Кб, после: {after} Кб")
+        self.image_size_label.setText(f"Размер до: {before} Кб, после: {after} Кб")
+
+        self.write_in_csv(elapsed_time, before, after)
         # os.remove(temp_file)
         self.btn_save.setEnabled(True)
         self.btn_show_dct.setEnabled(True)
@@ -262,9 +287,10 @@ class ImageProcessingApp(QMainWindow):
         if self.processed_image is not None:
             file_name, _ = QFileDialog.getSaveFileName(self, "Сохранить изображение", "", "JPEG Files (*.jpg)")
             if file_name:
+                if not file_name.lower().endswith(".jpg"):
+                    file_name += ".jpg"
                 cv2.imwrite(file_name, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
                 print(f"Изображение сохранено в {file_name}")
-
 
     def show_dct(self):
         if self.dct_blocks is not None:
@@ -320,17 +346,21 @@ class ImageProcessingApp(QMainWindow):
         else:
             self.statusBar.showMessage("DCT блоки не были вычислены!")
 
-    def show_zigzag(self):
-        """
-        Отображение результата зигзагообразного преобразования.
-        """
-        pass
 
-    def show_rle(self):
-        """
-        Вывод результата RLE сжатия.
-        """
-        pass
+
+    def write_in_csv(self, elapsed_time, before, after):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        file_exists = os.path.exists("processing_log.csv")
+        with open("processing_log.csv", "a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+
+            # Пишем заголовок, если файл новый
+            if not file_exists:
+                writer.writerow(["Дата и время", "Время обработки (сек)", "Размер до (Кб)", "Размер после (Кб)", "Степень сжатия"])
+
+            # Записываем данные
+            writer.writerow([now, elapsed_time, before, after, self.compress_level])
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
