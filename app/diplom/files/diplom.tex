@@ -1,0 +1,93 @@
+\documentclass[a4paper,12pt]{extreport}
+
+% --- Кодировки и язык ---
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% --- Шрифты ---
+\usepackage{pscyr} % Times New Roman
+\renewcommand{\rmdefault}{ftm}
+\renewcommand{\sfdefault}{ftx}
+\renewcommand{\ttdefault}{cmtt}
+
+% --- Поля ---
+\usepackage{vmargin}
+\setmarginsrb{3cm}{2cm}{1cm}{2cm}{0pt}{0mm}{0pt}{13mm}
+
+% --- Межстрочный интервал, абзац ---
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{indentfirst}
+\parindent=1.25cm
+\sloppy
+
+% --- Математика ---
+\usepackage{amsmath, amssymb, amsfonts, mathtext}
+
+% --- Картинки ---
+\usepackage{graphicx}
+\graphicspath{{../images/}} % путь к картинкам
+
+% --- Списки ---
+\usepackage{enumitem}
+\setlist[itemize]{noitemsep, topsep=0pt}
+\setlist[enumerate]{noitemsep, topsep=0pt}
+\renewcommand{\labelenumi}{\arabic{enumi})}
+
+% --- Таблицы ---
+\usepackage{longtable}
+\usepackage{floatrow}
+\floatsetup[table]{capposition=top}
+
+% --- Подписи к рисункам и таблицам ---
+\usepackage{caption}
+\captionsetup{justification=centering,labelsep=period, figurename=Рисунок, tablename=Таблица}
+
+% --- Оглавление ---
+\usepackage{tocloft}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+\renewcommand{\cftchapfont}{}
+\renewcommand{\cftchappagefont}{}
+\renewcommand{\cfttoctitlefont}{\hfil\large\bfseries\MakeUppercase}
+\renewcommand{\cftaftertoctitle}{\hfil}
+
+% --- Ссылки и литература ---
+\usepackage{url}
+\usepackage{cite}
+\makeatletter
+\renewcommand\@biblabel[1]{#1.}
+\makeatother
+
+% --- Команды ---
+\newcommand\term[1]{\textit{#1}}
+\newcommand\node[1]{\url{#1}}
+\newcommand\pic[1]{(см. рисунок~\ref{#1})}
+\newcommand\tab[1]{(см. таблицу~\ref{#1})}
+
+% --- Настройки нумерации секций ---
+\setcounter{secnumdepth}{1}  % Секции будут нумероваться без дроби
+\renewcommand{\thesection}{\arabic{section}}  % Убираем префикс главы
+\begin{document}
+
+% --- Титульный лист ---
+\input{../include/titlpage.tex}
+
+% --- Аннотация ---
+\input{../include/annotation.tex}
+
+% --- Оглавление ---
+\tableofcontents
+\newpage
+
+% --- Основные главы ---
+\input{../include/introduction.tex}
+
+% --- Основные понятия и определения ---
+\input{../include/chapter1.tex}
+
+% --- Список литературы ---
+\input{../include/bibliography.tex}
+
+\end{document}

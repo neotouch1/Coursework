@@ -138,6 +138,13 @@ venv.bak/
 # mkdocs documentation
 /site
 
+
+# LaTeX intermediate files
+*.aux
+*.fdb_latexmk
+*.fls
+*.toc
+
 # mypy
 .mypy_cache/
 .dmypy.json
