@@ -29,6 +29,7 @@
 \usepackage{graphicx}
 \graphicspath{{../images/}} % путь к картинкам
 
+
 % --- Списки ---
 \usepackage{enumitem}
 \setlist[itemize]{noitemsep, topsep=0pt}
@@ -39,6 +40,8 @@
 \usepackage{longtable}
 \usepackage{floatrow}
 \floatsetup[table]{capposition=top}
+\usepackage[table]{xcolor}
+\usepackage{pifont} % для кружочков
 
 % --- Подписи к рисункам и таблицам ---
 \usepackage{caption}
@@ -74,6 +77,9 @@
 % --- Титульный лист ---
 \input{../include/titlpage.tex}
 
+% --- Таблицы ----
+\input{tables/table.tex}
+
 % --- Аннотация ---
 \input{../include/annotation.tex}
 
@@ -86,6 +92,7 @@
 
 % --- Основные понятия и определения ---
 \input{../include/chapter1.tex}
+
 
 % --- Список литературы ---
 \input{../include/bibliography.tex}

@@ -1,0 +1,40 @@
+%1
+\newcommand{\IMageTable} {
+\begin{table}[h!]
+    \centering
+    \caption{Упрощенная схема цифрового изображения как двумерного массива пикселей}
+    \renewcommand{\arraystretch}{1.5}
+
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \cellcolor{gray!20}P(0,0) & \cellcolor{gray!10}P(0,1) & \cellcolor{gray!10}P(0,2) & \cellcolor{gray!20}P(0,3) \\
+        \hline
+        \cellcolor{gray!10}P(1,0) & \cellcolor{gray!20}P(1,1) & \cellcolor{gray!20}P(1,2) & \cellcolor{gray!10}P(1,3) \\
+        \hline
+        \cellcolor{gray!20}P(2,0) & \cellcolor{gray!10}P(2,1) & \cellcolor{gray!10}P(2,2) & \cellcolor{gray!20}P(2,3) \\
+        \hline
+        \cellcolor{gray!10}P(3,0) & \cellcolor{gray!20}P(3,1) & \cellcolor{gray!20}P(3,2) & \cellcolor{gray!10}P(3,3) \\
+        \hline
+    \end{tabular}
+\end{table}
+}
+
+
+
+%2
+\newcommand{\PixelTable} {
+\begin{table}[h!]
+    \centering
+    \renewcommand{\arraystretch}{1.5} % увеличим высоту строк
+    \begin{tabular}{|c|c|}
+    \hline
+    \textbf{RGB значения} & \textbf{Цвет} \\
+    \hline
+    RGB(255,0,0)   & {\color{red}\ding{108}} \\
+    RGB(0,255,0)   & {\color{green}\ding{108}} \\
+    RGB(0,0,255)   & {\color{blue}\ding{108}} \\
+    \hline
+    \end{tabular}
+    \caption{Представление пикселей с помощью RGB-значений и их цветов}
+\end{table}
+}
