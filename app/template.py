@@ -254,7 +254,7 @@ class ImageProcessingApp(QMainWindow):
 
         # cv2.imwrite(temp_file, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
         # self.img_size_after = os.path.getsize(temp_file)
-        rgb_image = cv2.cvtColor(self.processed_image, cv2.COLOR_BGR2RGB)
+        rgb_image = cv2.medianBlur(cv2.cvtColor(self.processed_image, cv2.COLOR_BGR2RGB), 3)
 
         # Преобразуем в QImage
         h, w, ch = rgb_image.shape

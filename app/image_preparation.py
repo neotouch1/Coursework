@@ -16,8 +16,9 @@ class ImagePreparation:
 
         self.block_size = block_size
         self.image_path = image_path
-        img = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
-        self.image = cv2.GaussianBlur(img, (5, 5), 0)
+        self.image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
+
+        # self.image = cv2.GaussianBlur(img, (5, 5), 0)
         self.h = self.image.shape[0]
         self.w = self.image.shape[1]
         
@@ -27,7 +28,38 @@ class ImagePreparation:
             self.img_ycrcb = cv2.cvtColor(self.image, cv2.COLOR_BGR2YCrCb)
             print("File uploaded successfully!")
         
-    
+
+
+
+    def apply_subsampling(self):
+        """
+        Применяет субдискретизацию к компонентам Cb и Cr (например, 4:2:0).
+        """
+        if True:
+            y, cr, cb = cv2.split(self.img_ycrcb)
+
+            # Уменьшаем размерность Cb и Cr в 2 раза (субдискретизация 4:2:0)
+            cr_resized = cv2.resize(cr, (self.w // 2, self.h // 2), interpolation=cv2.INTER_LINEAR)
+            cb_resized = cv2.resize(cb, (self.w // 2, self.h // 2), interpolation=cv2.INTER_LINEAR)
+
+            # Приводим y к размеру cr_resized и cb_resized, если необходимо
+            if y.shape[:2] != cr_resized.shape[:2]:
+                y = cv2.resize(y, (cr_resized.shape[1], cr_resized.shape[0]), interpolation=cv2.INTER_LINEAR)
+
+            # Убедитесь, что все каналы имеют одинаковую глубину
+            cr_resized = cr_resized.astype(np.uint8)
+            cb_resized = cb_resized.astype(np.uint8)
+            y = y.astype(np.uint8)
+
+            # Объединяем каналы после приведения их к одинаковому размеру и типу
+            self.img_ycrcb = cv2.merge([y, cr_resized, cb_resized])
+            self.h = self.img_ycrcb.shape[0]
+            self.w = self.img_ycrcb.shape[1]
+            print(f"shape_sub_discret: {self.img_ycrcb.shape}")
+
+
+
+
 
     def pad_image_to_multiple(self):
         """
@@ -40,7 +72,6 @@ class ImagePreparation:
         Returns:
             numpy.ndarray: Padded image with dimensions aligned to the block size.
         """
-
         pad_h = (self.block_size - self.h % self.block_size) % self.block_size
         pad_w = (self.block_size - self.w % self.block_size) % self.block_size
 
@@ -48,10 +79,14 @@ class ImagePreparation:
         self.h = self.img_ycrcb.shape[0]
         self.w = self.img_ycrcb.shape[1]
 
+        print(f"resolutions: {self.img_ycrcb .shape}")
+
         return self.img_ycrcb
     
 
     def split_into_bloks(self):
+        self.apply_subsampling()
+        self.pad_image_to_multiple()
         """
         Split the padded image into blocks and store them in the field `self.blocks`.
         """

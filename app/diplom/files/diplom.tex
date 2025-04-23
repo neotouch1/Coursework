@@ -49,7 +49,7 @@
 
 % --- Оглавление ---
 \usepackage{tocloft}
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \setcounter{secnumdepth}{3}
 \renewcommand{\cftchapfont}{}
 \renewcommand{\cftchappagefont}{}
@@ -70,7 +70,7 @@
 \newcommand\tab[1]{(см. таблицу~\ref{#1})}
 
 % --- Настройки нумерации секций ---
-\setcounter{secnumdepth}{1}  % Секции будут нумероваться без дроби
+\setcounter{secnumdepth}{2}  % Секции будут нумероваться без дроби
 \renewcommand{\thesection}{\arabic{section}}  % Убираем префикс главы
 \begin{document}
 
@@ -92,6 +92,9 @@
 
 % --- Основные понятия и определения ---
 \input{../include/chapter1.tex}
+
+% --- Алгоритмы и стуктуры данных
+\input{../include/chapter2.tex}
 
 
 % --- Список литературы ---
