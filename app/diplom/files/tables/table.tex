@@ -128,3 +128,50 @@
         \]
         \end{center}
 }
+
+
+\NewEnviron{RLETable}{
+\begin{table}[H]
+    \centering
+    \caption{\text{Последовательность коэффициентов после зигзаг-преобразования}}
+    \label{tab:zigzag_seq}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|*{16}{c|}}
+    \hline
+    \textbf{№} & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10} & \textbf{11} & \textbf{12} & \textbf{13} & \textbf{14} & \textbf{15} & \textbf{16} \\
+    \hline
+    \textbf{Значение} & 52 & -3 & 0 & 0 & 0 & 2 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+    \hline
+    \end{tabular}
+\end{table}
+}
+
+
+
+\NewEnviron{RLEEncodedTable}{
+\begin{table}[H]
+\centering
+\caption{\text{Преобразование последовательности с помощью RLE}}
+\label{tab:rle_encoded}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|c|p{8cm}|}
+\hline
+\textbf{№} & \textbf{Пара (значение, количество нулей перед)} & \textbf{Пояснение} \\
+\hline
+1 & (52, 0) & Первое значение, сразу записывается \\
+\hline
+2 & (-3, 0) & Следующее ненулевое значение без нулей перед ним \\
+\hline
+3 & (0, 3) & Три последовательных нуля \\
+\hline
+4 & (2, 0) & Следующий ненулевой коэффициент \\
+\hline
+5 & (0, 7) & Семь нулей подряд \\
+\hline
+6 & (1, 0) & Следующий ненулевой коэффициент \\
+\hline
+7 & (0, 2) & Завершающие два нуля \\
+\hline
+\end{tabular}
+\end{table}
+}
