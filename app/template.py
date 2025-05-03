@@ -3,7 +3,7 @@ import cv2
 import csv
 import os
 import numpy as np
-from PIL import Image
+import pickle
 from datetime import datetime
 import time
 from PyQt5.QtWidgets import (
@@ -148,22 +148,10 @@ class ImageProcessingApp(QMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(self, "Выберите изображение", "",
                                                    "Images (*.png *.xpm *.jpg *.bmp *.jpeg)")
         if file_name:
-            # self.image_path = file_name
-            # self.img_size_before = os.path.getsize(self.image_path)
-            # self.show_image(self.image_path)
-            # self.btn_process.setEnabled(True)
-            self.img_size_before = Image.open(file_name).convert("RGB")
-            arr = np.array(self.img_size_before)
-
-            # Сохраняем в бинарный raw файл
-            arr.tofile("original_rgb.raw")
-
-
-
-
-
-
-
+            self.image_path = file_name
+            self.img_size_before = os.path.getsize(self.image_path)
+            self.show_image(self.image_path)
+            self.btn_process.setEnabled(True)
 
     def show_image(self, path):
         img = cv2.imread(path)
@@ -236,9 +224,7 @@ class ImageProcessingApp(QMainWindow):
         rle = RleProcessing()
         self.rle_data = rle.apply_rle_all_blocks(zig_ex.zigzag_blocks)
 
-        with open("compressed_rle.bin", "wb") as f:
-            pickle.dump(self.rle_data, f)
-
+        size = sys.getsizeof(self.rle_data)
 
 
         #Decode
@@ -263,7 +249,7 @@ class ImageProcessingApp(QMainWindow):
         self.processed_image = reconstructed_bgr
         temp_file = "temp_compressed.jpg"
 
-        encoded_parm = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+        encoded_parm = [int(cv2.IMWRITE_JPEG_QUALITY), 100]
         _, encoded_image = cv2.imencode('.jpg', self.processed_image, encoded_parm)
         self.img_size_after = len(encoded_image.tobytes())
 
@@ -287,17 +273,10 @@ class ImageProcessingApp(QMainWindow):
         self.image_label.setPixmap(pixmap)
         self.image_label.setScaledContents(False)
 
-        # before = round(self.img_size_before / 1024, 2)
-        # after = round(self.img_size_after / 1024, 2)
-        original_size = os.path.getsize("original_rgb.raw")
-        
-        compressed_size = os.path.getsize("rle_data.pkl")
-        compression_ratio = original_size / compressed_size
-        self.image_size_label.setText(f"Размер до: {0} Кб, после: {0} Кб")
-
-
+        before = round(self.img_size_before / 1024, 2)
+        after = round(self.img_size_after / 1024, 2)
         # Обновляем метки в интерфейсе
-        # self.image_size_label.setText(f"Размер до: {before} Кб, после: {after} Кб")
+        self.image_size_label.setText(f"Размер до: {before} Кб, после: {after} Кб") #size/ 1024
 
         self.write_in_csv(elapsed_time, before, after)
         # os.remove(temp_file)
@@ -312,7 +291,7 @@ class ImageProcessingApp(QMainWindow):
             if file_name:
                 if not file_name.lower().endswith(".jpg"):
                     file_name += ".jpg"
-                cv2.imwrite(file_name, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                cv2.imwrite(file_name, self.processed_image, [cv2.IMWRITE_JPEG_QUALITY, 100])
                 print(f"Изображение сохранено в {file_name}")
 
     def show_dct(self):

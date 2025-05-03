@@ -18,8 +18,8 @@ class CompressionLevelDialog(QDialog):
         layout.addWidget(self.label)
 
         # Создание радиокнопок для выбора уровня сжатия
-        self.radio_2 = QRadioButton("В 2 раза")
-        self.radio_5 = QRadioButton("В 5 раз")
+        self.radio_2 = QRadioButton("Среднее сжатие")
+        self.radio_5 = QRadioButton("Грубое сжатие")
 
         # Установка значения по умолчанию (первый вариант)
         self.radio_2.setChecked(True)
