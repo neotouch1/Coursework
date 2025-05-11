@@ -157,6 +157,7 @@ class ImageProcessingApp(QMainWindow):
         img = cv2.imread(path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         h, w, ch = img.shape
+        self.h, self.w, _ = img.shape
         bytes_per_line = ch * w
         qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(qimg)
@@ -361,7 +362,7 @@ class ImageProcessingApp(QMainWindow):
                 writer.writerow(["Дата и время", "Время обработки (сек)", "Размер до (Кб)", "Размер после (Кб)", "Степень сжатия"])
 
             # Записываем данные
-            writer.writerow([now, elapsed_time, before, after, self.compress_level])
+            writer.writerow([now, elapsed_time, before, after, self.compress_level, self.w, self.h])
 
 
 if __name__ == "__main__":
