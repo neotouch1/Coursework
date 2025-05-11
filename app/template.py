@@ -359,7 +359,7 @@ class ImageProcessingApp(QMainWindow):
 
             # Пишем заголовок, если файл новый
             if not file_exists:
-                writer.writerow(["Дата и время", "Время обработки (сек)", "Размер до (Кб)", "Размер после (Кб)", "Степень сжатия"])
+                writer.writerow(["Дата и время", "Время обработки (сек)", "Размер до (Кб)", "Размер после (Кб)", "Степень сжатия", "Ширина", "Высота"])
 
             # Записываем данные
             writer.writerow([now, elapsed_time, before, after, self.compress_level, self.w, self.h])
