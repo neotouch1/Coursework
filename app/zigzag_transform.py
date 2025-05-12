@@ -6,8 +6,10 @@ class ZigzagTransform:
     Class for performing zigzag transformation on DCT coefficient blocks.
     """
         
-    def __init__(self):
-        pass
+    def __init__(self, block_size=8):
+        self.block_size = block_size
+        print(f"Block_size: {self.block_size}")
+
 
 
     def z_blok2d(self, block):
@@ -91,11 +93,11 @@ class ZigzagTransform:
         """
         H, W, _, channels = self.zigzag_blocks.shape
 
-        blocks = np.zeros((H, W, 8, 8, channels), dtype=np.int32) #TODO сделать что-то с переменным размером блока
+        blocks = np.zeros((H, W, self.block_size, self.block_size, channels), dtype=np.int32) #TODO сделать что-то с переменным размером блока
 
         for c in range(channels):
             for i in range(H):
                 for j in range(W):
-                    blocks[i, j, :, :, c] = self.inverse_zigzag_scan(self.zigzag_blocks[i, j, :, c], 8)
+                    blocks[i, j, :, :, c] = self.inverse_zigzag_scan(self.zigzag_blocks[i, j, :, c], self.block_size)
         print(blocks.shape)
         return blocks

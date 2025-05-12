@@ -50,6 +50,8 @@ class ImageProcessingApp(QMainWindow):
         self.zigzag_blocks = None
         self.rle_data = None
 
+        self.block_size = 8
+
 
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
@@ -199,7 +201,7 @@ class ImageProcessingApp(QMainWindow):
         5. RLE сжатие
         """
 
-        pre_image = ImagePreparation(self.image_path)
+        pre_image = ImagePreparation(self.image_path, self.block_size) ###################################
         blocks = pre_image.split_into_bloks()
 
 
@@ -209,9 +211,8 @@ class ImageProcessingApp(QMainWindow):
         dct_b = res_dct.apply_idct_to_blocks(res_dct.dct_blocks)
         self.dct_blocks = pre_image.merge_blocks(dct_b)
 
-
         # Обработка с квантованными блоками
-        quant_blocks = QuantizeBlocks()
+        quant_blocks = QuantizeBlocks(block_size=self.block_size)
         print(self.compress_level)
         quant_blocks.quantize_dct_bloks(res_dct.dct_blocks, self.compress_level)
         quant_show = res_dct.apply_idct_to_blocks(quant_blocks.quantized_blocks)
@@ -219,7 +220,7 @@ class ImageProcessingApp(QMainWindow):
 
 
 
-        zig_ex = ZigzagTransform()
+        zig_ex = ZigzagTransform(self.block_size)
         zig_ex.z_transform_blocks(quant_blocks.quantized_blocks)
 
         rle = RleProcessing()
@@ -236,7 +237,7 @@ class ImageProcessingApp(QMainWindow):
         tr_blocks  = zig_ex.inverse_zigzag_transform_blocks()
 
 
-        blocks_for_dct = quant_blocks.dequantize_blocks(tr_blocks, 8) # Подготовка коэффициентов DCT
+        blocks_for_dct = quant_blocks.dequantize_blocks(tr_blocks, self.block_size) # Подготовка коэффициентов DCT
         blocks_pixels = res_dct.apply_idct_to_blocks(blocks_for_dct)
 
         # Собираем и сливаем блоки воедино

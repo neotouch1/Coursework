@@ -15,6 +15,7 @@ class ImagePreparation:
 
 
         self.block_size = block_size
+        print(f"Block_size: {self.block_size}")
         self.image_path = image_path
         self.image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
 
