@@ -11,15 +11,15 @@ from scipy.fftpack import idct
 class DCT2D:
     def dct2Down(self, block):
         """
-        Perform a 2D Discrete Cosine Transform (DCT) on a given square block.
+        Выполняет 2D дискретное косинусное преобразование (DCT) на заданном квадратном блоке вручную.
 
-        Args:
-            block (numpy.ndarray): Input 2D array (block) of shape (N, N) representing the image block to transform.
+        Аргументы:
+            block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
 
-        Returns:
-            numpy.ndarray: Transformed 2D block with DCT applied, same shape as the input (N, N).
-
+        Возвращает:
+            numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
         """
+
         N = block.shape[0]
         dct_res = np.zeros((N, N), dtype=np.float32)
         alpha = lambda k : np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
@@ -40,13 +40,13 @@ class DCT2D:
 
     def dct2D(self, block):
         """
-        Perform a 2D Discrete Cosine Transform (DCT) using the scipy library.
+        Выполняет 2D дискретное косинусное преобразование (DCT) с использованием библиотеки scipy.
 
-        Args:
-            block (numpy.ndarray): Input 2D array (block) of shape (N, N) representing the image block to transform.
+        Аргументы:
+            block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
 
-        Returns:
-            numpy.ndarray: Transformed 2D block with DCT applied, same shape as the input (N, N).
+        Возвращает:
+            numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
         """
         # Apply DCT on rows
         dct_rows = dct(block, axis=0, norm='ortho')
@@ -59,13 +59,15 @@ class DCT2D:
 
     def apply_dct_to_blocks(self, blocks, use_own=False):
         """
-        Apply 2D Discrete Cosine Transform (DCT) to all blocks, either using a custom implementation (own) or scipy.
+        Применяет 2D DCT ко всем блокам изображения. Можно выбрать между собственной реализацией DCT и библиотечной (scipy).
 
-        Args:
-            blocks (numpy.ndarray): 4D array containing image blocks (num_blocks_x, block_size_x, num_blocks_y, block_size_y, channels).
-            use_own (bool, optional): Whether to use the custom DCT implementation. Defaults to True.
+        Аргументы:
+            blocks (numpy.ndarray): 5D массив блоков изображения размером 
+                                    (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+            use_own (bool, optional): Использовать ли собственную реализацию DCT. По умолчанию False (используется scipy).
 
-        Returns: numpy.ndarray: 4D array with DCT applied to each block.
+        Возвращает:
+            numpy.ndarray: 5D массив с применённым DCT к каждому блоку.
         """
         H, W, block_size, _, channels = blocks.shape
         self.dct_blocks = np.zeros_like(blocks, dtype=np.float32)
@@ -90,9 +92,13 @@ class DCT2D:
 
     def idct2D(self, block):
         """
-        Реализация 2D IDCT с использованием scipy.fftpack.idct.
-        :param block: входной блок коэффициентов DCT размером N x N
-        :return: восстановленный блок пикселей
+        Выполняет обратное 2D дискретное косинусное преобразование (IDCT) с использованием scipy.
+
+        Аргументы:
+            block (numpy.ndarray): Входной блок коэффициентов DCT размером (N, N).
+
+        Возвращает:
+            numpy.ndarray: Восстановленный блок пикселей.
         """
         # Первый проход — IDCT по строкам
         temp = idct(block, axis=0, type=2, norm='ortho')
@@ -102,9 +108,14 @@ class DCT2D:
     
     def apply_idct_to_blocks(self, dct_blocks):
         """
-        Применить 2D IDCT к каждому блоку коэффициентов DCT.
-        :param dct_blocks: массив коэффициентов DCT (H, W, block_size, block_size, channels)
-        :return: восстановленные блоки пикселей
+        Применяет обратное 2D DCT (IDCT) ко всем блокам изображения.
+
+        Аргументы:
+            dct_blocks (numpy.ndarray): 5D массив DCT-коэффициентов размером 
+                                        (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+
+        Возвращает:
+            numpy.ndarray: 5D массив восстановленных блоков изображения.
         """
         H, W, block_size, _, channels = dct_blocks.shape
         img_blocks = np.zeros_like(dct_blocks, dtype=np.float32)

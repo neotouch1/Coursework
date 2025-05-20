@@ -1,0 +1,122 @@
+
+class DCT2D:
+    def dct2Down(self, block):
+        """
+        Выполняет 2D дискретное косинусное преобразование (DCT) на заданном квадратном блоке вручную.
+
+        Аргументы:
+            block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
+
+        Возвращает:
+            numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
+        """
+
+        N = block.shape[0]
+        dct_res = np.zeros((N, N), dtype=np.float32)
+        alpha = lambda k : np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
+
+        for u in range(N):
+            for v in range(N):
+                sum_value = 0.0
+                for x in range(N):
+                    for y in range(N):
+                        sum_value += block[x, y] * \
+                                     np.cos((2 * x + 1) * u * np.pi / (2 * N)) * \
+                                     np.cos((2 * y + 1) * v * np.pi / (2 * N))
+                dct_res[u, v] = alpha(u) * alpha(v) * sum_value
+
+        return dct_res
+
+
+
+    def dct2D(self, block):
+        """
+        Выполняет 2D дискретное косинусное преобразование (DCT) с использованием библиотеки scipy.
+
+        Аргументы:
+            block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
+
+        Возвращает:
+            numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
+        """
+        # Apply DCT on rows
+        dct_rows = dct(block, axis=0, norm='ortho')
+
+        # Apply DCT on columns
+        dct_2d = dct(dct_rows, axis=1, norm='ortho')
+
+        return dct_2d
+
+
+    def apply_dct_to_blocks(self, blocks, use_own=False):
+        """
+        Применяет 2D DCT ко всем блокам изображения. Можно выбрать между собственной реализацией DCT и библиотечной (scipy).
+
+        Аргументы:
+            blocks (numpy.ndarray): 5D массив блоков изображения размером
+                                    (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+            use_own (bool, optional): Использовать ли собственную реализацию DCT. По умолчанию False (используется scipy).
+
+        Возвращает:
+            numpy.ndarray: 5D массив с применённым DCT к каждому блоку.
+        """
+        H, W, block_size, _, channels = blocks.shape
+        self.dct_blocks = np.zeros_like(blocks, dtype=np.float32)
+
+        # Применяем DCT к каждому блоку для каждого канала
+        for i in range(H):
+            for j in range(W):
+                for c in range(channels):
+                    block = blocks[i, j, :, :, c]  # Извлекаем блок для текущего канала
+                    # dct_blocks[i, j, :, :, c] = dct2D(block)
+                    block = np.float32(block)
+
+                    if use_own:
+                        self.dct_blocks[i, j, :, :, c] = self.dct2Down(block)
+                    else:
+                        self.dct_blocks[i, j, :, :, c] = self.dct2D(block)
+
+        return self.dct_blocks
+
+
+    # Decoded
+
+    def idct2D(self, block):
+        """
+        Выполняет обратное 2D дискретное косинусное преобразование (IDCT) с использованием scipy.
+
+        Аргументы:
+            block (numpy.ndarray): Входной блок коэффициентов DCT размером (N, N).
+
+        Возвращает:
+            numpy.ndarray: Восстановленный блок пикселей.
+        """
+        # Первый проход — IDCT по строкам
+        temp = idct(block, axis=0, type=2, norm='ortho')
+        # Второй проход — IDCT по столбцам
+        idct_res = idct(temp, axis=1, type=2, norm='ortho')
+        return idct_res
+
+    def apply_idct_to_blocks(self, dct_blocks):
+        """
+        Применяет обратное 2D DCT (IDCT) ко всем блокам изображения.
+
+        Аргументы:
+            dct_blocks (numpy.ndarray): 5D массив DCT-коэффициентов размером
+                                        (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+
+        Возвращает:
+            numpy.ndarray: 5D массив восстановленных блоков изображения.
+        """
+        H, W, block_size, _, channels = dct_blocks.shape
+        img_blocks = np.zeros_like(dct_blocks, dtype=np.float32)
+
+        for i in range(H):
+            for j in range(W):
+                for c in range(channels):
+                    block = dct_blocks[i, j, :, :, c]  # Извлекаем блок для текущего канала
+                    img_blocks[i, j, :, :, c] = self.idct2D(block)
+
+        return img_blocks
+
+

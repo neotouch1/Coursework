@@ -1,0 +1,317 @@
+\newpage
+\section{Приложение}
+
+\subsection{Класс подготовки изображения}
+
+Загружает цветное изображение по заданному пути и преобразует его в цветовое пространство YCrCb. 
+Предоставляет методы для субдискретизации цветовых каналов Cb и Cr (например, 4:2:0), 
+дополняет изображение до размеров, кратных блочному размеру, разбивает изображение на блоки заданного 
+размера и собирает изображение обратно из таких блоков.
+
+\begin{lstlisting}[caption={Класс подготовки изображения}]
+
+    import numpy as np
+
+class ImagePreparation:
+    def __init__(self,
+                 image_path, 
+                 block_size=8
+                 ):
+
+        self.block_size = block_size
+        print(f"Block_size: {self.block_size}")
+        self.image_path = image_path
+        self.image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
+
+        self.h = self.image.shape[0]
+        self.w = self.image.shape[1]
+        
+        if self.image is None:
+            raise FileNotFoundError("Image not loaded!")
+        else:
+            self.img_ycrcb = cv2.cvtColor(self.image, cv2.COLOR_BGR2YCrCb)
+            print("File uploaded successfully!")
+
+    def apply_subsampling(self):
+        """
+        Apply subsampling to Cb and Cr channels (e.g., 4:2:0).
+        """
+        y, cr, cb = cv2.split(self.img_ycrcb)
+
+        # Reduce resolution of Cr and Cb channels by half (subsampling 4:2:0)
+        cr_resized = cv2.resize(cr, (self.w // 2, self.h // 2), interpolation=cv2.INTER_LINEAR)
+        cb_resized = cv2.resize(cb, (self.w // 2, self.h // 2), interpolation=cv2.INTER_LINEAR)
+
+        # Resize Y channel if needed to match Cr and Cb sizes
+        if y.shape[:2] != cr_resized.shape[:2]:
+            y = cv2.resize(y, (cr_resized.shape[1], cr_resized.shape[0]), interpolation=cv2.INTER_LINEAR)
+
+        # Ensure all channels have the same data type
+        cr_resized = cr_resized.astype(np.uint8)
+        cb_resized = cb_resized.astype(np.uint8)
+        y = y.astype(np.uint8)
+
+        # Merge channels back after resizing
+        self.img_ycrcb = cv2.merge([y, cr_resized, cb_resized])
+        self.h = self.img_ycrcb.shape[0]
+        self.w = self.img_ycrcb.shape[1]
+        print(f"Subsampled image shape: {self.img_ycrcb.shape}")
+
+    def pad_image_to_multiple(self):
+        """
+        Pad the image so its dimensions are multiples of the block size.
+
+        Returns:
+            numpy.ndarray: Padded image.
+        """
+        pad_h = (self.block_size - self.h % self.block_size) % self.block_size
+        pad_w = (self.block_size - self.w % self.block_size) % self.block_size
+
+        self.img_ycrcb = cv2.copyMakeBorder(self.img_ycrcb, 0, pad_h, 0, pad_w, cv2.BORDER_REPLICATE)
+        self.h = self.img_ycrcb.shape[0]
+        self.w = self.img_ycrcb.shape[1]
+
+        print(f"Padded image shape: {self.img_ycrcb.shape}")
+
+        return self.img_ycrcb
+
+    def split_into_blocks(self):
+        """
+        Split the padded image into blocks and store them in `self.blocks`.
+
+        Returns:
+            numpy.ndarray: Array of image blocks with shape 
+            (num_blocks_y, num_blocks_x, block_size, block_size, channels).
+        """
+        self.apply_subsampling()
+        self.pad_image_to_multiple()
+
+        blocks = self.img_ycrcb.reshape(self.h // self.block_size, self.block_size,
+                                       self.w // self.block_size, self.block_size,
+                                       self.img_ycrcb.shape[2])
+        self.blocks = blocks.swapaxes(1, 2)
+        return self.blocks
+
+    def merge_blocks(self, blocks):
+        """
+        Reconstruct image from blocks.
+
+        Args:
+            blocks (numpy.ndarray): Array of blocks (H, W, block_size, block_size, channels).
+
+        Returns:
+            numpy.ndarray: Reconstructed image cropped to original size.
+        """
+        H, W, block_size, _, channels = blocks.shape
+        h, w, _ = self.image.shape
+
+        img = np.zeros((H * block_size, W * block_size, channels), dtype=np.uint8)
+
+        for i in range(H):
+            for j in range(W):
+                img[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size, :] = blocks[i, j]
+
+        return img[:h, :w]
+
+\end{lstlisting}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Класс дикретного косинусного преобразования}
+
+Класс реализует двухмерное дискретное косинусное преобразование (DCT) и обратное преобразование 
+(IDCT) для блоков изображений. 
+В классе есть два варианта вычисления DCT: собственная реализация и использование библиотеки \texttt{scipy}.
+ Также реализованы методы для применения DCT и IDCT к набору блоков с учётом цветовых каналов.
+
+\begin{lstlisting}[caption={Класс двумерного дикретного косинусного преобразования}]
+
+from scipy.fftpack import dct
+from scipy.fftpack import idct
+
+class DCT2D:
+    def dct2Down(self, block):
+        """
+        Performs 2D discrete cosine transform (DCT) on a given square block manually.
+
+        Args:
+            block (numpy.ndarray): Input 2D array (block) of size (N, N).
+
+        Returns:
+            numpy.ndarray: Transformed block of the same size with applied DCT.
+        """
+
+        N = block.shape[0]
+        dct_res = np.zeros((N, N), dtype=np.float32)
+        alpha = lambda k : np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
+
+        for u in range(N):
+            for v in range(N):
+                sum_value = 0.0
+                for x in range(N):
+                    for y in range(N):
+                        sum_value += block[x, y] * \
+                                     np.cos((2 * x + 1) * u * np.pi / (2 * N)) * \
+                                     np.cos((2 * y + 1) * v * np.pi / (2 * N))
+                dct_res[u, v] = alpha(u) * alpha(v) * sum_value
+
+        return dct_res
+    
+
+    def dct2D(self, block):
+        """
+        Performs 2D discrete cosine transform (DCT) using scipy library.
+
+        Args:
+            block (numpy.ndarray): Input 2D array (block) of size (N, N).
+
+        Returns:
+            numpy.ndarray: Transformed block of the same size with applied DCT.
+        """
+        dct_rows = dct(block, axis=0, norm='ortho')
+        dct_2d = dct(dct_rows, axis=1, norm='ortho')
+
+        return dct_2d
+    
+
+    def apply_dct_to_blocks(self, blocks, use_own=False):
+        """
+        Applies 2D DCT to all image blocks. Can choose between own implementation and scipy.
+
+        Args:
+            blocks (numpy.ndarray): 5D array of image blocks with shape
+                                    (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+            use_own (bool, optional): Whether to use own DCT implementation. Defaults to False.
+
+        Returns:
+            numpy.ndarray: 5D array with applied DCT to each block.
+        """
+        H, W, block_size, _, channels = blocks.shape
+        self.dct_blocks = np.zeros_like(blocks, dtype=np.float32)
+
+        for i in range(H):
+            for j in range(W):
+                for c in range(channels):
+                    block = blocks[i, j, :, :, c]
+                    block = np.float32(block)
+
+                    if use_own:
+                        self.dct_blocks[i, j, :, :, c] = self.dct2Down(block)
+                    else:
+                        self.dct_blocks[i, j, :, :, c] = self.dct2D(block)
+
+        return self.dct_blocks
+    
+
+    def idct2D(self, block):
+        """
+        Performs inverse 2D discrete cosine transform (IDCT) using scipy.
+
+        Args:
+            block (numpy.ndarray): Input block of DCT coefficients of size (N, N).
+
+        Returns:
+            numpy.ndarray: Reconstructed pixel block.
+        """
+        temp = idct(block, axis=0, type=2, norm='ortho')
+        idct_res = idct(temp, axis=1, type=2, norm='ortho')
+        return idct_res
+    
+    def apply_idct_to_blocks(self, dct_blocks):
+        """
+        Applies inverse 2D DCT (IDCT) to all image blocks.
+
+        Args:
+            dct_blocks (numpy.ndarray): 5D array of DCT coefficients with shape
+                                        (num_blocks_x, num_blocks_y, block_size_x, block_size_y, channels).
+
+        Returns:
+            numpy.ndarray: 5D array of reconstructed image blocks.
+        """
+        H, W, block_size, _, channels = dct_blocks.shape
+        img_blocks = np.zeros_like(dct_blocks, dtype=np.float32)
+
+        for i in range(H):
+            for j in range(W):
+                for c in range(channels):
+                    block = dct_blocks[i, j, :, :, c]
+                    img_blocks[i, j, :, :, c] = self.idct2D(block)
+
+        return img_blocks
+\end{lstlisting}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Класс квантования}
+
+
+Этот набор методов выполняет квантование и деквантование блоков коэффициентов дискретного косинусного 
+преобразования (DCT):
+
+\begin{lstlisting}[caption={Класс квантования коэффициентов}]
+        def quantize_dct_bloks(self, bloks, quality=0):
+        """
+        Quantizes the DCT coefficients using the selected quality factor.
+        
+        Args:
+            blocks (np.array): DCT blocks to quantize.
+            quality (int): Quality factor (0 = default matrices).
+        
+        Returns:
+            np.array: Quantized blocks.
+        """
+        #np.set_printoptions(precision=2, suppress=True)
+        # print(bloks[:1, :, :, :, 1])
+        if quality == 0:
+            H, W, block_size, _, channels = bloks.shape
+            self.quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
+
+            for c in range(channels):
+                for i in range(H):
+                    for j in range(W):
+                        self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c]
+                                         / self.q_matrices[c][:self.block_size, :self.block_size])
+
+            #print(self.quantized_blocks[:1, :, :, :, 1])
+            return self.quantized_blocks
+        
+        else:
+            self.scale_quantiztion_matrices(quality)
+            H, W, block_size, _, channels = bloks.shape
+            self.quantized_blocks = np.zeros_like(bloks, dtype=np.int32)
+
+
+            for c in range(channels):
+                for i in range(H):
+                    for j in range(W):
+                        self.quantized_blocks[i, j, :, :, c] = np.round(bloks[i, j, :, :, c] 
+                                        / self.q_scale_matrices[c][:self.block_size, :self.block_size])
+
+            #print(self.quantized_blocks[:1, :, :, :, 1])
+            return self.quantized_blocks
+        
+
+
+
+        # Decoded
+    def dequantize_blocks(self, quantized_blocks, block_size):
+
+        print(f"DEQUANT: {quantized_blocks.shape}")
+        H, W, block_size, _, channels = quantized_blocks.shape
+        dct_blocks = np.zeros_like(quantized_blocks, dtype=np.float32)
+
+        for c in range(channels):
+            for i in range(H):
+                for j in range(W):
+                    dct_blocks[i, j, :, :, c] = quantized_blocks[i, j, :, :, c] * self.q_matrices[c][:self.block_size, :self.block_size]
+
+        return dct_blocks
+\end{lstlisting}
+
+
+
+
