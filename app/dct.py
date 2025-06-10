@@ -9,34 +9,62 @@ from scipy.fftpack import idct
 
 
 class DCT2D:
+    # def dct2Down(self, block):
+    #     """
+    #     Выполняет 2D дискретное косинусное преобразование (DCT) на заданном квадратном блоке вручную.
+
+    #     Аргументы:
+    #         block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
+
+    #     Возвращает:
+    #         numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
+    #     """
+
+    #     N = block.shape[0]
+    #     dct_res = np.zeros((N, N), dtype=np.float32)
+    #     alpha = lambda k : np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
+
+    #     for u in range(N):
+    #         for v in range(N):
+    #             sum_value = 0.0
+    #             for x in range(N):
+    #                 for y in range(N):
+    #                     sum_value += block[x, y] * \
+    #                                  np.cos((2 * x + 1) * u * np.pi / (2 * N)) * \
+    #                                  np.cos((2 * y + 1) * v * np.pi / (2 * N))
+    #             dct_res[u, v] = alpha(u) * alpha(v) * sum_value
+
+    #     return dct_res
+
+
+
+    def __init__(self):
+        self.cosine_matrices = {}  # Кэш для матриц D для разных размеров N
+
+    def _get_dct_matrix(self, N):
+        if N in self.cosine_matrices:
+            return self.cosine_matrices[N]
+
+        # Предвычисляем матрицу D (NxN)
+        D = np.zeros((N, N), dtype=np.float32)
+        factor = np.pi / (2 * N)
+        alpha = lambda k: np.sqrt(1 / N) if k == 0 else np.sqrt(2 / N)
+
+        for k in range(N):
+            for n in range(N):
+                D[k, n] = alpha(k) * np.cos((2 * n + 1) * k * factor)
+        
+        self.cosine_matrices[N] = D
+        return D
+    
     def dct2Down(self, block):
         """
-        Выполняет 2D дискретное косинусное преобразование (DCT) на заданном квадратном блоке вручную.
-
-        Аргументы:
-            block (numpy.ndarray): Входной двумерный массив (блок) размером (N, N), представляющий блок изображения.
-
-        Возвращает:
-            numpy.ndarray: Преобразованный блок того же размера с применённым DCT.
+        Быстрая реализация 2D DCT через матричное умножение.
         """
-
         N = block.shape[0]
-        dct_res = np.zeros((N, N), dtype=np.float32)
-        alpha = lambda k : np.sqrt(1/N) if k == 0 else np.sqrt(2/N)
-
-        for u in range(N):
-            for v in range(N):
-                sum_value = 0.0
-                for x in range(N):
-                    for y in range(N):
-                        sum_value += block[x, y] * \
-                                     np.cos((2 * x + 1) * u * np.pi / (2 * N)) * \
-                                     np.cos((2 * y + 1) * v * np.pi / (2 * N))
-                dct_res[u, v] = alpha(u) * alpha(v) * sum_value
-
-        return dct_res
-    
-
+        D = self._get_dct_matrix(N)
+        # DCT = D * block * D^T
+        return D @ block @ D.T
 
     def dct2D(self, block):
         """
